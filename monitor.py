@@ -1,22 +1,36 @@
 import glob
-import time
+import json_logging
+import logging
 import sys
-import os.path
+import time
+import os
 
-monitored_paths = ['folder1', 'folder2', 'folder3', 'folder1/subfolder']
-check_interval = 1
+
+def load_config(config_property):
+    try:
+        return os.environ[config_property]
+    except KeyError:
+        print(f"Please set the {config_property} first")
+        sys.exit(1)
+
 
 if __name__ == "__main__":
+    check_interval = load_config("CHECK_INTERVAL")
+    monitored_paths_tmp = load_config("MONITORED_PATHS")
+    monitored_paths = monitored_paths_tmp.split()
+    json_logging.init_non_web(enable_json=True)
+    logger = logging.getLogger("path-monitor")
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(logging.StreamHandler(sys.stdout))
+    logger.info(f"Check interval is {check_interval}")
     while True:
-        time.sleep(check_interval)
+        time.sleep(int(check_interval))
         for path in monitored_paths:
             if os.path.exists(path):
                 files = glob.glob(path + '/' + '*', recursive=True)
                 if files:
-                    print(path + ' ' + "Folder is not empty")
-                print("Total files in " + path + ' : ' + str(len(files)))
-                for file in files:
-                    print(file)
+                    logger.info(f"{path} Folder is not empty")
+                    logger.info(f"Total files in {path} : {str(len(files))}")
+                    logger.info(files)
             else:
-                print(path + " path does not exist")
-                sys.exit(1)
+                logger.error(f"{path} path does not exist")
